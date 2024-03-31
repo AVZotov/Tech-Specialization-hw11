@@ -2,6 +2,8 @@ package ru.gb.task02;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -16,6 +18,7 @@ public class Cart<T extends Food> {
      * Товары в магазине
      */
     private final ArrayList<T> foodstuffs;
+    private final Map<String, Boolean> nutrientRatio;
     private final UMarket market;
     private final Class<T> clazz;
 
@@ -32,6 +35,11 @@ public class Cart<T extends Food> {
         this.clazz = clazz;
         this.market = market;
         foodstuffs = new ArrayList<>();
+        this.nutrientRatio = new HashMap<>(Map.of(
+                "proteins", false,
+                "fats", false,
+                "carbohydrates", false
+        ));
     }
 
     //endregion
@@ -40,56 +48,58 @@ public class Cart<T extends Food> {
      * Балансировка корзины
      */
     public void cartBalancing(){
-        boolean proteins = false;
-        boolean fats = false;
-        boolean carbohydrates = false;
 
-        for (var food : foodstuffs)
-        {
-            if (!proteins && food.getProteins())
-                proteins = true;
-            else
-            if (!fats && food.getFats())
-                fats = true;
-            else
-            if (!carbohydrates && food.getCarbohydrates())
-                carbohydrates = true;
-            if (proteins && fats && carbohydrates)
-                break;
-        }
+        updateNutrientRatio();
 
-        if (proteins && fats && carbohydrates)
+        if (isBasketBalanced())
         {
             System.out.println("Корзина уже сбалансирована по БЖУ.");
             return;
         }
 
-        for (var thing : market.getThings(clazz))
-        {
-            if (!proteins && thing.getProteins())
-            {
-                proteins = true;
-                foodstuffs.add(thing);
-            }
-            else if (!fats && thing.getFats())
-            {
-                fats = true;
-                foodstuffs.add(thing);
-            }
-            else if (!carbohydrates && thing.getCarbohydrates())
-            {
-                carbohydrates = true;
-                foodstuffs.add(thing);
-            }
-            if (proteins && fats && carbohydrates)
-                break;
-        }
+        updateFoodStuff();
 
-        if (proteins && fats && carbohydrates)
+        if (isBasketBalanced())
             System.out.println("Корзина сбалансирована по БЖУ.");
         else
             System.out.println("Невозможно сбалансировать корзину по БЖУ.");
+    }
 
+    private boolean isBasketBalanced(){
+        return nutrientRatio.values().stream().allMatch(nutrient -> nutrient);
+    }
+
+    private void updateNutrientRatio(){
+        foodstuffs.forEach(food -> {
+            if (!nutrientRatio.get("proteins") && food.getProteins())
+                nutrientRatio.put("proteins", true);
+            else
+            if (!nutrientRatio.get("fats") && food.getFats())
+                nutrientRatio.put("fats", true);
+            else
+            if (!nutrientRatio.get("carbohydrates") && food.getCarbohydrates())
+                nutrientRatio.put("carbohydrates", true);
+        });
+    }
+
+    private void updateFoodStuff(){
+
+        market.getThings(clazz).forEach(product -> {
+            if (!nutrientRatio.get("proteins") && product.getProteins()){
+                nutrientRatio.put("proteins", true);
+                foodstuffs.add(product);
+            }
+            else if (!nutrientRatio.get("fats") && product.getFats())
+            {
+                nutrientRatio.put("fats", true);
+                foodstuffs.add(product);
+            }
+            else if (!nutrientRatio.get("carbohydrates") && product.getCarbohydrates())
+            {
+                nutrientRatio.put("fats", true);
+                foodstuffs.add(product);
+            }
+        });
     }
 
     public Collection<T> getFoodstuffs() {
@@ -101,10 +111,6 @@ public class Cart<T extends Food> {
      */
     public void printFoodstuffs()
     {
-        /*int index = 1;
-        for (var food : foodstuffs)
-            System.out.printf("[%d] %s (Белки: %s Жиры: %s Углеводы: %s)\n", index++, food.getName(), food.getProteins() ? "Да" : "Нет",
-                    food.getFats() ? "Да" : "Нет", food.getCarbohydrates() ? "Да" : "Нет");*/
         AtomicInteger index = new AtomicInteger(1);
         foodstuffs.forEach(food -> System.out.printf("[%d] %s (Белки: %s Жиры: %s Углеводы: %s)\n",
                 index.getAndIncrement(), food.getName(),
